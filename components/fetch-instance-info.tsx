@@ -1,6 +1,10 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { useQuery } from "@tanstack/react-query";
-import { InstanceWithFederationState, LemmyHttp } from "lemmy-js-client";
+import {
+  GetFederatedInstancesResponse,
+  InstanceWithFederationState,
+  LemmyHttp,
+} from "lemmy-js-client";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { memo, useState } from "react";
 import {
@@ -23,22 +27,8 @@ type List = {
   list: InstanceWithFederationState[];
 };
 
-function FetchInstanceInfo(params: { domain: string }) {
-  const query = useQuery({
-    queryKey: ["site-info", params.domain],
-    queryFn: async () => {
-      const api = new LemmyHttp(`https://${params.domain}`);
-      return await api.getFederatedInstances();
-    },
-  });
-  if (query.status === "pending") {
-    return <div>loading...</div>;
-  }
-  if (query.status === "error") {
-    console.error("query error", query.error);
-    return <div>{String(query.error)}</div>;
-  }
-  const linked = query.data.federated_instances?.linked
+function processResponse(data: GetFederatedInstancesResponse): List[] {
+  const linked = data.federated_instances?.linked
     ?.slice()
     .sort(
       (a, b) =>
@@ -99,11 +89,40 @@ function FetchInstanceInfo(params: { domain: string }) {
       list: current,
     },
   ];
+  return lists;
+}
+function FetchInstanceInfo(params: { domain: string }) {
+  const query = useQuery({
+    queryKey: ["site-info", params.domain],
+    queryFn: async () => {
+      const api = new LemmyHttp(`https://${params.domain}`);
+      const resp = await api.getFederatedInstances();
+      try {
+        return processResponse(resp);
+      } catch (e) {
+        console.error(e);
+        if (String(e).includes("time zone")) {
+          return "too old";
+        }
+        return null;
+      }
+    },
+  });
+  if (query.status === "pending") {
+    return <div>loading...</div>;
+  }
+  if (query.status === "error") {
+    console.error("query error", query.error);
+    return <div>{String(query.error)}</div>;
+  }
+
   return (
     <>
-      {lists.map((list) => (
-        <DetailedInfo list={list} key={list.title} />
-      ))}
+      {query.data === "too old" ? (
+        <>This instance has not yet been updated to 0.19</>
+      ) : (
+        query.data?.map((list) => <DetailedInfo list={list} key={list.title} />)
+      )}
     </>
   );
 }

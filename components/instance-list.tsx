@@ -16,7 +16,7 @@ export function InstanceList(props: { domain: string }) {
   return (
     <>
       <div className="grid h-screen min-h-screen w-full lg:grid-cols-[280px_1fr]">
-        <div className="border-r bg-gray-100/40 lg:block dark:bg-gray-800/40">
+        <div className="border-r bg-gray-100/40 lg:block dark:bg-gray-800 dark:border-black">
           <div className="flex flex-col gap-2">
             <div className="flex h-[60px] items-center px-6">
               <Link className="flex items-center gap-2 font-semibold" href="#">
@@ -51,7 +51,7 @@ export function InstanceList(props: { domain: string }) {
                 >
                   <HomeIcon className="h-4 w-4" />
                   <input
-                    className="flex-grow flex-shrink w-0"
+                    className="flex-grow flex-shrink w-0 dark:bg-gray-600 p-1"
                     value={searchInput}
                     placeholder="Other domain..."
                     onChange={(e) => setSearchInput(e.target.value)}
@@ -67,7 +67,7 @@ export function InstanceList(props: { domain: string }) {
             </div>
           </div>
         </div>
-        <div className="flex flex-col">
+        <div className="flex flex-col dark:bg-gray-900">
           <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
             <h2 className="text-xl">Federated Instances of {props.domain}</h2>
             <FetchInstanceInfo domain={props.domain} />
