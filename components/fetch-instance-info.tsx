@@ -27,7 +27,10 @@ type List = {
   list: InstanceWithFederationState[];
 };
 
-function processResponse(data: GetFederatedInstancesResponse): List[] {
+function processResponse(data: GetFederatedInstancesResponse): {
+  newest_id: number;
+  lists: List[];
+} {
   const linked = data.federated_instances?.linked
     ?.slice()
     .sort(
@@ -41,7 +44,13 @@ function processResponse(data: GetFederatedInstancesResponse): List[] {
   const withFailures = [];
   const lagging = [];
   const current = [];
+  let newest_id = 0;
   for (const instance of linked ?? []) {
+    const last_successful_id =
+      instance.federation_state?.last_successful_id ?? 0;
+    if (last_successful_id > newest_id) {
+      newest_id = last_successful_id;
+    }
     if (
       !instance.updated ||
       Temporal.Instant.compare(
@@ -89,7 +98,7 @@ function processResponse(data: GetFederatedInstancesResponse): List[] {
       list: current,
     },
   ];
-  return lists;
+  return { newest_id, lists };
 }
 function FetchInstanceInfo(params: { domain: string }) {
   const query = useQuery({
@@ -115,19 +124,25 @@ function FetchInstanceInfo(params: { domain: string }) {
     console.error("query error", query.error);
     return <div>{String(query.error)}</div>;
   }
-
+  const data = query.data;
   return (
     <>
-      {query.data === "too old" ? (
+      {data === "too old" ? (
         <>This instance has not yet been updated to 0.19</>
       ) : (
-        query.data?.map((list) => <DetailedInfo list={list} key={list.title} />)
+        data?.lists.map((list) => (
+          <DetailedInfo
+            newest_id={data.newest_id}
+            list={list}
+            key={list.title}
+          />
+        ))
       )}
     </>
   );
 }
 
-function DetailedInfo({ list }: { list: List }) {
+function DetailedInfo({ list, newest_id }: { list: List; newest_id: number }) {
   const [open, setOpen] = useState(false);
   return (
     <Collapsible
@@ -156,9 +171,14 @@ function DetailedInfo({ list }: { list: List }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Domain</TableHead>
-                <TableHead>Last seen</TableHead>
-                <TableHead>Last Successful Send</TableHead>
-                <TableHead>Failures of last send</TableHead>
+                <TableHead>
+                  Last successfully sent activity (newest: {newest_id})
+                </TableHead>
+                <TableHead>Instance last seen</TableHead>
+                <TableHead>
+                  Timestamp of last successfully sent activity
+                </TableHead>
+                <TableHead>Failure count of last send</TableHead>
                 <TableHead>Last send try</TableHead>
                 <TableHead>Next send try</TableHead>
               </TableRow>
@@ -170,6 +190,16 @@ function DetailedInfo({ list }: { list: List }) {
                   return (
                     <TableRow key={instance.id}>
                       <TableCell>{instance.domain}</TableCell>
+                      <TableCell>
+                        {s ? (
+                          <>
+                            {s.last_successful_id} (
+                            {newest_id - (s.last_successful_id ?? 0)} behind)
+                          </>
+                        ) : (
+                          "?"
+                        )}
+                      </TableCell>
                       <TableCell>
                         {instance.updated &&
                           new Date(instance.updated).toLocaleString()}
