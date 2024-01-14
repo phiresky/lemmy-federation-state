@@ -89,7 +89,7 @@ function processResponse(data: GetFederatedInstancesResponse): {
     },
     {
       title: "lagging instances",
-      desc: "Instances where send is working but lagging behind by at least 10 minutes",
+      desc: "Instances where send is working but last send was at least 10 minutes ago. This is also the case if no activity has happened on your instance in the last 10 minutes.",
       list: lagging,
     },
     {
