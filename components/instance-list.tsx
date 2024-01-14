@@ -69,7 +69,7 @@ export function InstanceList(props: { domain: string }) {
         </div>
         <div className="flex flex-col dark:bg-gray-900">
           <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-            <h2 className="text-xl">Federated Instances of {props.domain}</h2>
+            <h2 className="text-xl">State of outgoing federation from {props.domain}</h2>
             <FetchInstanceInfo domain={props.domain} />
           </main>
         </div>
